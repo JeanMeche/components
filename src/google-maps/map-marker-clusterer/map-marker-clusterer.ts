@@ -461,40 +461,38 @@ export class MapMarkerClusterer implements OnInit, AfterContentInit, OnChanges, 
   private _watchForMarkerChanges() {
     this._assertInitialized();
     const initialMarkers: google.maps.Marker[] = [];
-    for (const marker of this._getInternalMarkers(this._markers.toArray())) {
+    for (const marker of this._getInternalMarkers(this._markers)) {
       this._currentMarkers.add(marker);
       initialMarkers.push(marker);
     }
     this.markerClusterer.addMarkers(initialMarkers);
 
-    this._markers.changes
-      .pipe(takeUntil(this._destroy))
-      .subscribe((markerComponents: MapMarker[]) => {
-        this._assertInitialized();
-        const newMarkers = new Set<google.maps.Marker>(this._getInternalMarkers(markerComponents));
-        const markersToAdd: google.maps.Marker[] = [];
-        const markersToRemove: google.maps.Marker[] = [];
-        for (const marker of Array.from(newMarkers)) {
-          if (!this._currentMarkers.has(marker)) {
-            this._currentMarkers.add(marker);
-            markersToAdd.push(marker);
-          }
+    this._markers.changes.pipe(takeUntil(this._destroy)).subscribe(markerComponents => {
+      this._assertInitialized();
+      const newMarkers = new Set<google.maps.Marker>(this._getInternalMarkers(markerComponents));
+      const markersToAdd: google.maps.Marker[] = [];
+      const markersToRemove: google.maps.Marker[] = [];
+      for (const marker of Array.from(newMarkers)) {
+        if (!this._currentMarkers.has(marker)) {
+          this._currentMarkers.add(marker);
+          markersToAdd.push(marker);
         }
-        for (const marker of Array.from(this._currentMarkers)) {
-          if (!newMarkers.has(marker)) {
-            markersToRemove.push(marker);
-          }
+      }
+      for (const marker of Array.from(this._currentMarkers)) {
+        if (!newMarkers.has(marker)) {
+          markersToRemove.push(marker);
         }
-        this.markerClusterer.addMarkers(markersToAdd, true);
-        this.markerClusterer.removeMarkers(markersToRemove, true);
-        this.markerClusterer.repaint();
-        for (const marker of markersToRemove) {
-          this._currentMarkers.delete(marker);
-        }
-      });
+      }
+      this.markerClusterer.addMarkers(markersToAdd, true);
+      this.markerClusterer.removeMarkers(markersToRemove, true);
+      this.markerClusterer.repaint();
+      for (const marker of markersToRemove) {
+        this._currentMarkers.delete(marker);
+      }
+    });
   }
 
-  private _getInternalMarkers(markers: MapMarker[]): google.maps.Marker[] {
+  private _getInternalMarkers(markers: QueryList<MapMarker>): google.maps.Marker[] {
     return markers
       .filter(markerComponent => !!markerComponent.marker)
       .map(markerComponent => markerComponent.marker!);
